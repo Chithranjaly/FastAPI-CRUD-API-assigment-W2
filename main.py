@@ -83,3 +83,68 @@ def create_task(task: TaskCreate):
     tasks.append(new_task)
     return new_task
 
+
+
+class TaskUpdate(BaseModel):
+    title:str | None=None
+    done:bool | None=None
+
+
+
+
+@app.put("/tasks/{task_id}")
+def update_task(task_id:int,task_update:TaskUpdate):
+    if task_update.title is None and task_update.done is None:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error":"At least one field is required!"
+            }
+
+        )
+    for task in tasks:
+        if task["id"] == task_id:
+            if task_update.title is not None:
+                title = task_update.title.strip()
+
+                if not title:
+                    return JSONResponse(
+                        status_code=400,
+                        content={
+                            "error":"The title can't be empty"
+                        },
+
+                    )
+
+                task["title"] = title
+
+
+            if task_update.done is not None:
+                task["done"] = task_update.done
+
+            return task
+
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error":f"Task with id {task_id} not found"
+        },
+    )
+
+
+@app.delete("/tasks/{task_id}",status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(task_id:int):
+    for task in tasks:
+        if task["id"] == task_id:
+            tasks.remove(task)
+            return
+
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error":f"Task with id {task_id} not found!"
+        }
+    )
+
+        
+

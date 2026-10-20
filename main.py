@@ -11,17 +11,47 @@ app = FastAPI(title = "Task CRUD API")
 
 tasks = [
     {"id":1, "title":"Learn FastAPI","done":False},
-    {"id":2, "title":"Build CRUD API","done":False},
+    {"id":2, "title":"Build CRUD API","done":True},
     {"id":3, "title":"Deploy the application","done":False},
 ]
 @app.get("/")
 def root():
-    return {"name":"Task API","version":"1.0","endpoints":["/tasks"]}
+    return {"name":"Task API","version":"1.0","endpoints":["/tasks","/tasks/id","/health"
+    ""]}
 
 
-@app.get("/tasks")
-def get_tasks():
-    return tasks
+# @app.get("/tasks")           # without filtering
+# def get_tasks():
+#     return tasks
+
+
+# @app.get("/tasks")                  #with filtering
+# def get_tasks(done:bool | None = None):
+#     if done is None:
+#         return tasks
+
+#     return [task for task in tasks if task["done"] == done]
+
+
+@app.get("/tasks")                  #with filtering and search
+def get_tasks(done:bool | None = None, search:str | None = None):
+    filtered_tasks = tasks
+
+    if done is not None:
+        filtered_tasks = [
+            task for task in filtered_tasks
+            if task["done"] == done
+        ]
+
+
+    if search is not None:
+        filtered_tasks = [
+            task for task in filtered_tasks
+            if search.strip().lower() in task["title"].lower()
+        ]
+
+    return filtered_tasks
+
 
 @app.get("/tasks/{task_id}")
 def get_task(task_id:int):

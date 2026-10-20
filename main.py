@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from fastapi import status
 from fastapi.exceptions import RequestValidationError
 from fastapi import Request
+from fastapi.encoders import jsonable_encoder
 
 app = FastAPI(title = "Task CRUD API")
 
@@ -68,7 +69,7 @@ def get_task(task_id:int):
 
 @app.get("/health")
 def health_check():
-    return {"Status":"ok"}
+    return {"status":"ok"}
 
 
 class TaskCreate(BaseModel):
@@ -77,19 +78,46 @@ class TaskCreate(BaseModel):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
-    request:Request,
-    exc:RequestValidationError
+    request: Request,
+    exc: RequestValidationError,
 ):
+    errors = exc.errors()
+
     if request.method == "POST" and request.url.path == "/tasks":
+        missing_title = any(
+            tuple(error.get("loc", ())) == ("body", "title")
+            and error.get("type") == "missing"
+            for error in errors
+        )
+
+        if missing_title:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Task title is required"},
+            )
+
         return JSONResponse(
             status_code=400,
-            content={"error":"Task title is required!"}
+            content={"error": "Invalid request body"},
         )
+
+    if request.method == "PUT" and request.url.path.startswith("/tasks/"):
+        has_body_error = any(
+            error.get("loc", (None,))[0] == "body"
+            for error in errors
+        )
+
+        if has_body_error:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid request body"},
+            )
 
     return JSONResponse(
         status_code=422,
-        content={"detail":exc.errors()}
+        content={"detail": jsonable_encoder(errors)},
     )
+
 
 @app.post("/tasks",status_code=status.HTTP_201_CREATED)
 def create_task(task: TaskCreate):
@@ -191,7 +219,7 @@ def get_stats():
     }
         
 
-@app.get("/reset")
+@app.post("/reset")
 def reset_tasks():
     tasks.clear()
     tasks.extend([

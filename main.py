@@ -11,7 +11,7 @@ app = FastAPI(title = "Task CRUD API")
 
 tasks = [
     {"id":1, "title":"Learn FastAPI","done":False},
-    {"id":2, "title":"Build CRUD API","done":True},
+    {"id":2, "title":"Build CRUD API","done":False},
     {"id":3, "title":"Deploy the application","done":False},
 ]
 @app.get("/")
@@ -176,5 +176,29 @@ def delete_task(task_id:int):
         }
     )
 
+
+
+@app.get("/stats")
+def get_stats():
+    total = len(tasks)
+    completed = sum(1 for task in tasks if task["done"])
+    open_tasks = total - completed
+
+    return{
+        "total":total,
+        "done": completed,
+        "open": open_tasks,
+    }
         
 
+@app.get("/reset")
+def reset_tasks():
+    tasks.clear()
+    tasks.extend([
+        {"id":1, "title":"Learn FastAPI","done":False},
+        {"id":2, "title":"Build CRUD API","done":False},
+        {"id":3, "title":"Deploy the application","done":False},
+
+    ])
+    return {"message":"Tasks reset successfully!", "tasks":tasks}
+    
